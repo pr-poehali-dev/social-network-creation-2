@@ -23,13 +23,18 @@ const Index = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
   const [isAddFriendOpen, setIsAddFriendOpen] = useState(false);
+  const [isCreateChatOpen, setIsCreateChatOpen] = useState(false);
   const [myGroups, setMyGroups] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
+  const [myChats, setMyChats] = useState([]);
+  const [newChatName, setNewChatName] = useState('');
+  const [myFriends, setMyFriends] = useState([]);
+  const [myPosts, setMyPosts] = useState([]);
 
   // Генерация уникального кода друга
   useEffect(() => {
     const generateFriendCode = () => {
-      return 'SC' + Math.random().toString(36).substr(2, 8).toUpperCase();
+      return 'MIN' + Math.random().toString(36).substr(2, 6).toUpperCase();
     };
     setFriendCode(generateFriendCode());
   }, []);
@@ -49,6 +54,12 @@ const Index = () => {
         return newLiked;
       });
       
+      setMyPosts(prev => prev.map(post => 
+        post.id === postId 
+          ? { ...post, likes: post.likes + (likedPosts.has(postId) ? -1 : 1) }
+          : post
+      ));
+      
       setAnimatingLikes(prev => {
         const newAnimating = new Set(prev);
         newAnimating.delete(postId);
@@ -67,13 +78,32 @@ const Index = () => {
       description: newGroupDescription,
       members: 1,
       owner: true,
-      avatar: '🚀'
+      avatar: '⚫'
     };
     
     setMyGroups(prev => [...prev, newGroup]);
     setNewGroupName('');
     setNewGroupDescription('');
     setIsCreateGroupOpen(false);
+  };
+
+  // Создание чата
+  const createChat = () => {
+    if (!newChatName.trim()) return;
+    
+    const newChat = {
+      id: Date.now(),
+      name: newChatName,
+      lastMessage: 'Чат создан',
+      time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      unread: 0,
+      online: true,
+      isOwner: true
+    };
+    
+    setMyChats(prev => [...prev, newChat]);
+    setNewChatName('');
+    setIsCreateChatOpen(false);
   };
 
   // Добавление друга по коду
@@ -83,7 +113,7 @@ const Index = () => {
     const newRequest = {
       id: Date.now(),
       code: addFriendCode,
-      name: 'Новый космонавт',
+      name: 'Новый пользователь',
       status: 'pending'
     };
     
@@ -92,65 +122,54 @@ const Index = () => {
     setIsAddFriendOpen(false);
   };
 
-  // Мок данные для демонстрации
-  const [posts, setPosts] = useState([
-    {
-      id: 1,
-      author: 'Анна Космос',
-      avatar: '👩‍🚀',
-      time: '2 ч назад',
-      content: 'Только что вернулась с орбитальной станции! Невероятные виды на нашу планету 🌍✨',
-      likes: 42,
-      comments: 8,
-      image: 'https://images.unsplash.com/photo-1446776653964-20c1d3a81b06?w=500&h=300&fit=crop'
-    },
-    {
-      id: 2,
-      author: 'Макс Галактика',
-      avatar: '👨‍🚀',
-      time: '4 ч назад',
-      content: 'Новый проект по исследованию Марса стартует завтра! Кто готов к приключениям? 🚀',
-      likes: 73,
-      comments: 15
-    },
-    {
-      id: 3,
-      author: 'Лиза Звёздная',
-      avatar: '👩‍💼',
-      time: '6 ч назад',
-      content: 'Делюсь результатами эксперимента в невесомости. Наука не стоит на месте! 🧪⚗️',
-      likes: 28,
-      comments: 5
+  // Принятие заявки в друзья
+  const acceptFriendRequest = (requestId) => {
+    const request = pendingRequests.find(r => r.id === requestId);
+    if (request) {
+      const newFriend = {
+        id: Date.now(),
+        name: request.name,
+        status: 'Онлайн',
+        online: true
+      };
+      
+      setMyFriends(prev => [...prev, newFriend]);
+      setPendingRequests(prev => prev.filter(r => r.id !== requestId));
     }
-  ]);
+  };
 
-  const chats = [
-    { id: 1, name: 'Команда Альфа', lastMessage: 'Готовы к запуску!', time: '12:34', unread: 3, online: true },
-    { id: 2, name: 'Исследователи', lastMessage: 'Отчет готов', time: '11:22', unread: 0, online: true },
-    { id: 3, name: 'База Марс', lastMessage: 'Связь стабильна', time: '10:15', unread: 1, online: false }
-  ];
+  // Отклонение заявки в друзья
+  const rejectFriendRequest = (requestId) => {
+    setPendingRequests(prev => prev.filter(r => r.id !== requestId));
+  };
 
-  const friends = [
-    { id: 1, name: 'Анна Космос', status: 'На орбите', online: true },
-    { id: 2, name: 'Макс Галактика', status: 'Готовлюсь к полету', online: true },
-    { id: 3, name: 'Лиза Звёздная', status: 'В лаборатории', online: false }
-  ];
-
-  const groups = [
-    { id: 1, name: 'Космические Исследователи', members: 1234 },
-    { id: 2, name: 'Марс 2030', members: 856 },
-    { id: 3, name: 'Звездные Путешественники', members: 2341 }
-  ];
+  // Создание поста
+  const createPost = () => {
+    if (!newPost.trim()) return;
+    
+    const post = {
+      id: Date.now(),
+      author: 'Вы',
+      avatar: '⚫',
+      time: 'только что',
+      content: newPost,
+      likes: 0,
+      comments: 0
+    };
+    
+    setMyPosts(prev => [post, ...prev]);
+    setNewPost('');
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-purple-100 sticky top-0 z-50">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <div className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                🚀 SocialSpace
+              <div className="text-2xl font-bold text-black">
+                ⚫ Min
               </div>
             </div>
             
@@ -158,8 +177,8 @@ const Index = () => {
               <div className="relative">
                 <Icon name="Search" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                 <Input
-                  placeholder="Поиск людей, групп, постов..."
-                  className="pl-10 bg-white/70"
+                  placeholder="Поиск..."
+                  className="pl-10 bg-white border-gray-300"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -169,20 +188,22 @@ const Index = () => {
             <div className="flex items-center space-x-4">
               <Button variant="ghost" size="icon" className="relative">
                 <Icon name="Bell" size={20} />
-                <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs bg-gradient-to-r from-pink-500 to-purple-500">
-                  3
-                </Badge>
+                {pendingRequests.length > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 text-xs bg-red-500 text-white">
+                    {pendingRequests.length}
+                  </Badge>
+                )}
               </Button>
               
               <Dialog open={isAddFriendOpen} onOpenChange={setIsAddFriendOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
+                  <Button variant="ghost" size="icon">
                     <Icon name="UserPlus" size={20} />
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    <DialogTitle className="text-black">
                       Добавить друга
                     </DialogTitle>
                     <DialogDescription>
@@ -194,13 +215,13 @@ const Index = () => {
                       <Label htmlFor="friend-code">Код друга</Label>
                       <Input
                         id="friend-code"
-                        placeholder="Например: SC12AB34CD"
+                        placeholder="Например: MIN1A2B3C"
                         value={addFriendCode}
                         onChange={(e) => setAddFriendCode(e.target.value.toUpperCase())}
                         className="mt-1"
                       />
                     </div>
-                    <Button onClick={addFriendByCode} className="w-full bg-gradient-to-r from-purple-500 to-pink-500">
+                    <Button onClick={addFriendByCode} className="w-full bg-red-500 hover:bg-red-600 text-white">
                       Отправить заявку
                     </Button>
                   </div>
@@ -215,7 +236,7 @@ const Index = () => {
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    <DialogTitle className="text-black">
                       Настройки
                     </DialogTitle>
                     <DialogDescription>
@@ -223,10 +244,10 @@ const Index = () => {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
-                    <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                       <Label className="text-sm font-medium text-gray-700">Ваш код друга:</Label>
                       <div className="flex items-center space-x-2 mt-2">
-                        <code className="flex-1 p-2 bg-white rounded border text-lg font-mono font-bold text-purple-600">
+                        <code className="flex-1 p-2 bg-white rounded border text-lg font-mono font-bold text-red-600">
                           {friendCode}
                         </code>
                         <Button
@@ -241,13 +262,18 @@ const Index = () => {
                         Поделитесь этим кодом с друзьями для добавления в контакты
                       </p>
                     </div>
+                    <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                      <h4 className="font-medium text-red-800 mb-2">🚀 Хостинг и публикация</h4>
+                      <p className="text-sm text-red-700">
+                        Чтобы поделиться этим сайтом с друзьями, нажмите кнопку <strong>"Опубликовать"</strong> в редакторе poehali.dev. Ваш сайт будет автоматически размещен в интернете!
+                      </p>
+                    </div>
                   </div>
                 </DialogContent>
               </Dialog>
               
-              <Avatar className="ring-2 ring-gradient-to-r from-purple-400 to-pink-400">
-                <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=user" />
-                <AvatarFallback>Я</AvatarFallback>
+              <Avatar className="ring-2 ring-black">
+                <AvatarFallback className="bg-black text-white">⚫</AvatarFallback>
               </Avatar>
             </div>
           </div>
@@ -258,7 +284,7 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <Card className="bg-white/70 backdrop-blur-sm border-purple-100">
+            <Card className="bg-white border-gray-200">
               <CardContent className="p-6">
                 <nav className="space-y-2">
                   {[
@@ -275,15 +301,15 @@ const Index = () => {
                       variant={activeTab === key ? 'default' : 'ghost'}
                       className={`w-full justify-start ${
                         activeTab === key 
-                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' 
-                          : 'hover:bg-purple-50'
+                          ? 'bg-red-500 text-white hover:bg-red-600' 
+                          : 'hover:bg-gray-100'
                       }`}
                       onClick={() => setActiveTab(key)}
                     >
                       <Icon name={icon} size={18} className="mr-2" />
                       {label}
                       {key === 'requests' && pendingRequests.length > 0 && (
-                        <Badge className="ml-auto h-4 w-4 p-0 text-xs bg-gradient-to-r from-pink-500 to-purple-500">
+                        <Badge className="ml-auto h-4 w-4 p-0 text-xs bg-red-500 text-white">
                           {pendingRequests.length}
                         </Badge>
                       )}
@@ -299,19 +325,19 @@ const Index = () => {
             {activeTab === 'feed' && (
               <div className="space-y-6">
                 {/* Create Post */}
-                <Card className="bg-white/70 backdrop-blur-sm border-purple-100">
+                <Card className="bg-white border-gray-200">
                   <CardContent className="p-6">
                     <div className="flex space-x-4">
                       <Avatar>
-                        <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=user" />
-                        <AvatarFallback>Я</AvatarFallback>
+                        <AvatarFallback className="bg-black text-white">⚫</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <Input
-                          placeholder="Что нового в космосе?"
+                        <Textarea
+                          placeholder="Что у вас нового?"
                           value={newPost}
                           onChange={(e) => setNewPost(e.target.value)}
-                          className="mb-4 bg-white/70"
+                          className="mb-4 bg-white border-gray-300 resize-none"
+                          rows={3}
                         />
                         <div className="flex justify-between items-center">
                           <div className="flex space-x-2">
@@ -324,7 +350,7 @@ const Index = () => {
                               Видео
                             </Button>
                           </div>
-                          <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600">
+                          <Button onClick={createPost} className="bg-red-500 hover:bg-red-600 text-white">
                             Опубликовать
                           </Button>
                         </div>
@@ -334,122 +360,167 @@ const Index = () => {
                 </Card>
 
                 {/* Posts */}
-                {posts.map((post) => (
-                  <Card key={post.id} className="bg-white/70 backdrop-blur-sm border-purple-100 hover:shadow-lg transition-shadow animate-fade-in">
-                    <CardContent className="p-6">
-                      <div className="flex items-center space-x-3 mb-4">
-                        <Avatar>
-                          <AvatarFallback className="bg-gradient-to-r from-purple-400 to-pink-400 text-white">
-                            {post.avatar}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900">{post.author}</h3>
-                          <p className="text-sm text-gray-500">{post.time}</p>
-                        </div>
-                      </div>
-                      
-                      <p className="text-gray-700 mb-4">{post.content}</p>
-                      
-                      {post.image && (
-                        <img 
-                          src={post.image} 
-                          alt="Post image" 
-                          className="w-full rounded-lg mb-4"
-                        />
-                      )}
-                      
-                      <div className="flex items-center space-x-6 text-gray-500">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className={`hover:text-pink-500 transition-all duration-200 ${likedPosts.has(post.id) ? 'text-pink-500' : ''}`}
-                          onClick={() => toggleLike(post.id)}
-                        >
-                          <Icon 
-                            name="Heart" 
-                            size={16} 
-                            className={`mr-2 transition-all duration-200 ${animatingLikes.has(post.id) ? 'animate-scale-in' : ''} ${likedPosts.has(post.id) ? 'fill-current' : ''}`}
-                          />
-                          {post.likes + (likedPosts.has(post.id) ? 1 : 0)}
-                        </Button>
-                        <Button variant="ghost" size="sm" className="hover:text-blue-500">
-                          <Icon name="MessageCircle" size={16} className="mr-2" />
-                          {post.comments}
-                        </Button>
-                        <Button variant="ghost" size="sm" className="hover:text-green-500">
-                          <Icon name="Share2" size={16} className="mr-2" />
-                          Поделиться
-                        </Button>
-                      </div>
+                {myPosts.length === 0 ? (
+                  <Card className="bg-white border-gray-200">
+                    <CardContent className="p-8 text-center">
+                      <Icon name="MessageSquare" size={48} className="mx-auto text-gray-300 mb-4" />
+                      <p className="text-gray-500">Пока нет постов</p>
+                      <p className="text-sm text-gray-400 mt-2">Создайте свой первый пост выше</p>
                     </CardContent>
                   </Card>
-                ))}
+                ) : (
+                  myPosts.map((post) => (
+                    <Card key={post.id} className="bg-white border-gray-200 hover:shadow-md transition-shadow">
+                      <CardContent className="p-6">
+                        <div className="flex items-center space-x-3 mb-4">
+                          <Avatar>
+                            <AvatarFallback className="bg-black text-white">
+                              {post.avatar}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900">{post.author}</h3>
+                            <p className="text-sm text-gray-500">{post.time}</p>
+                          </div>
+                        </div>
+                        
+                        <p className="text-gray-700 mb-4">{post.content}</p>
+                        
+                        <div className="flex items-center space-x-6 text-gray-500">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className={`hover:text-red-500 transition-all duration-200 ${likedPosts.has(post.id) ? 'text-red-500' : ''}`}
+                            onClick={() => toggleLike(post.id)}
+                          >
+                            <Icon 
+                              name="Heart" 
+                              size={16} 
+                              className={`mr-2 transition-all duration-200 ${animatingLikes.has(post.id) ? 'animate-scale-in' : ''} ${likedPosts.has(post.id) ? 'fill-current' : ''}`}
+                            />
+                            {post.likes}
+                          </Button>
+                          <Button variant="ghost" size="sm" className="hover:text-gray-700">
+                            <Icon name="MessageCircle" size={16} className="mr-2" />
+                            {post.comments}
+                          </Button>
+                          <Button variant="ghost" size="sm" className="hover:text-gray-700">
+                            <Icon name="Share2" size={16} className="mr-2" />
+                            Поделиться
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </div>
             )}
 
             {activeTab === 'messages' && (
-              <Card className="bg-white/70 backdrop-blur-sm border-purple-100">
-                <CardHeader>
-                  <h2 className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <Card className="bg-white border-gray-200">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <h2 className="text-xl font-semibold text-black">
                     Сообщения
                   </h2>
+                  <Dialog open={isCreateChatOpen} onOpenChange={setIsCreateChatOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white">
+                        <Icon name="Plus" size={16} className="mr-2" />
+                        Создать чат
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle className="text-black">
+                          Создать чат
+                        </DialogTitle>
+                        <DialogDescription>
+                          Создайте новый чат для общения
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="chat-name">Название чата</Label>
+                          <Input
+                            id="chat-name"
+                            placeholder="Введите название чата"
+                            value={newChatName}
+                            onChange={(e) => setNewChatName(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                        <Button onClick={createChat} className="w-full bg-red-500 hover:bg-red-600 text-white">
+                          Создать чат
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {chats.map((chat) => (
-                      <div key={chat.id} className="flex items-center space-x-3 p-3 hover:bg-purple-50 rounded-lg cursor-pointer">
-                        <div className="relative">
-                          <Avatar>
-                            <AvatarFallback className="bg-gradient-to-r from-blue-400 to-purple-400 text-white">
-                              {chat.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          {chat.online && (
-                            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                  {myChats.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Icon name="MessageCircle" size={48} className="mx-auto text-gray-300 mb-4" />
+                      <p className="text-gray-500">Нет чатов</p>
+                      <p className="text-sm text-gray-400 mt-2">Создайте свой первый чат</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {myChats.map((chat) => (
+                        <div key={chat.id} className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer border border-gray-100">
+                          <div className="relative">
+                            <Avatar>
+                              <AvatarFallback className="bg-black text-white">
+                                {chat.name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            {chat.online && (
+                              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center space-x-2">
+                                <h3 className="font-medium">{chat.name}</h3>
+                                {chat.isOwner && <Badge variant="outline" className="text-xs">Владелец</Badge>}
+                              </div>
+                              <span className="text-xs text-gray-500">{chat.time}</span>
+                            </div>
+                            <p className="text-sm text-gray-500">{chat.lastMessage}</p>
+                          </div>
+                          {chat.unread > 0 && (
+                            <Badge className="bg-red-500 text-white">
+                              {chat.unread}
+                            </Badge>
                           )}
                         </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between items-center">
-                            <h3 className="font-medium">{chat.name}</h3>
-                            <span className="text-xs text-gray-500">{chat.time}</span>
-                          </div>
-                          <p className="text-sm text-gray-500">{chat.lastMessage}</p>
-                        </div>
-                        {chat.unread > 0 && (
-                          <Badge className="bg-gradient-to-r from-pink-500 to-purple-500">
-                            {chat.unread}
-                          </Badge>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
 
             {activeTab === 'profile' && (
-              <Card className="bg-white/70 backdrop-blur-sm border-purple-100">
+              <Card className="bg-white border-gray-200">
                 <CardContent className="p-6">
                   <div className="text-center">
-                    <Avatar className="w-24 h-24 mx-auto mb-4 ring-4 ring-gradient-to-r from-purple-400 to-pink-400">
-                      <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=user" />
-                      <AvatarFallback className="text-2xl">🚀</AvatarFallback>
+                    <Avatar className="w-24 h-24 mx-auto mb-4 ring-4 ring-black">
+                      <AvatarFallback className="text-2xl bg-black text-white">⚫</AvatarFallback>
                     </Avatar>
-                    <h1 className="text-2xl font-bold mb-2">Космический Путешественник</h1>
-                    <p className="text-gray-600 mb-4">Исследователь галактик и новых миров</p>
+                    <h1 className="text-2xl font-bold mb-2 text-black">Пользователь Min</h1>
+                    <p className="text-gray-600 mb-4">Новый участник сообщества</p>
                     
                     <div className="grid grid-cols-3 gap-4 text-center">
                       <div>
-                        <div className="text-2xl font-bold text-purple-600">127</div>
+                        <div className="text-2xl font-bold text-black">{myPosts.length}</div>
                         <div className="text-sm text-gray-500">Постов</div>
                       </div>
                       <div>
-                        <div className="text-2xl font-bold text-pink-600">1.2k</div>
+                        <div className="text-2xl font-bold text-red-500">{myFriends.length}</div>
                         <div className="text-sm text-gray-500">Друзей</div>
                       </div>
                       <div>
-                        <div className="text-2xl font-bold text-blue-600">15</div>
+                        <div className="text-2xl font-bold text-black">{myGroups.length}</div>
                         <div className="text-sm text-gray-500">Групп</div>
                       </div>
                     </div>
@@ -459,57 +530,65 @@ const Index = () => {
             )}
 
             {activeTab === 'friends' && (
-              <Card className="bg-white/70 backdrop-blur-sm border-purple-100">
+              <Card className="bg-white border-gray-200">
                 <CardHeader>
-                  <h2 className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  <h2 className="text-xl font-semibold text-black">
                     Друзья
                   </h2>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {friends.map((friend) => (
-                      <div key={friend.id} className="flex items-center space-x-3 p-3 hover:bg-purple-50 rounded-lg">
-                        <div className="relative">
-                          <Avatar>
-                            <AvatarFallback className="bg-gradient-to-r from-green-400 to-blue-400 text-white">
-                              {friend.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          {friend.online && (
-                            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
-                          )}
+                  {myFriends.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Icon name="Users" size={48} className="mx-auto text-gray-300 mb-4" />
+                      <p className="text-gray-500">Пока нет друзей</p>
+                      <p className="text-sm text-gray-400 mt-2">Добавьте друзей по коду или через поиск</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {myFriends.map((friend) => (
+                        <div key={friend.id} className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg">
+                          <div className="relative">
+                            <Avatar>
+                              <AvatarFallback className="bg-black text-white">
+                                {friend.name.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            {friend.online && (
+                              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-medium">{friend.name}</h3>
+                            <p className="text-sm text-gray-500">{friend.status}</p>
+                          </div>
+                          <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white">
+                            <Icon name="MessageCircle" size={14} />
+                          </Button>
                         </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium">{friend.name}</h3>
-                          <p className="text-sm text-gray-500">{friend.status}</p>
-                        </div>
-                        <Button size="sm" className="bg-gradient-to-r from-purple-500 to-pink-500">
-                          <Icon name="MessageCircle" size={14} />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
 
             {activeTab === 'groups' && (
               <div className="space-y-6">
-                <Card className="bg-white/70 backdrop-blur-sm border-purple-100">
+                <Card className="bg-white border-gray-200">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                    <h2 className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    <h2 className="text-xl font-semibold text-black">
                       Мои группы
                     </h2>
                     <Dialog open={isCreateGroupOpen} onOpenChange={setIsCreateGroupOpen}>
                       <DialogTrigger asChild>
-                        <Button size="sm" className="bg-gradient-to-r from-purple-500 to-pink-500">
+                        <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white">
                           <Icon name="Plus" size={16} className="mr-2" />
                           Создать
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                          <DialogTitle className="text-black">
                             Создать группу
                           </DialogTitle>
                           <DialogDescription>
@@ -521,7 +600,7 @@ const Index = () => {
                             <Label htmlFor="group-name">Название группы</Label>
                             <Input
                               id="group-name"
-                              placeholder="Космические исследователи"
+                              placeholder="Введите название группы"
                               value={newGroupName}
                               onChange={(e) => setNewGroupName(e.target.value)}
                               className="mt-1"
@@ -538,7 +617,7 @@ const Index = () => {
                               rows={3}
                             />
                           </div>
-                          <Button onClick={createGroup} className="w-full bg-gradient-to-r from-purple-500 to-pink-500">
+                          <Button onClick={createGroup} className="w-full bg-red-500 hover:bg-red-600 text-white">
                             Создать группу
                           </Button>
                         </div>
@@ -546,63 +625,45 @@ const Index = () => {
                     </Dialog>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {myGroups.map((group) => (
-                        <div key={group.id} className="flex items-center space-x-3 p-4 border border-purple-100 rounded-lg hover:bg-purple-50">
-                          <Avatar className="bg-gradient-to-r from-orange-400 to-red-400">
-                            <AvatarFallback className="text-white">
-                              {group.avatar}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2">
-                              <h3 className="font-medium">{group.name}</h3>
-                              {group.owner && <Badge variant="secondary" className="text-xs">Владелец</Badge>}
+                    {myGroups.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Icon name="Users2" size={48} className="mx-auto text-gray-300 mb-4" />
+                        <p className="text-gray-500">Нет групп</p>
+                        <p className="text-sm text-gray-400 mt-2">Создайте свою первую группу</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {myGroups.map((group) => (
+                          <div key={group.id} className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                            <Avatar className="bg-black">
+                              <AvatarFallback className="text-white">
+                                {group.avatar}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2">
+                                <h3 className="font-medium">{group.name}</h3>
+                                {group.owner && <Badge variant="outline" className="text-xs">Владелец</Badge>}
+                              </div>
+                              <p className="text-sm text-gray-500">{group.members} участников</p>
                             </div>
-                            <p className="text-sm text-gray-500">{group.members} участников</p>
+                            <Button size="sm" variant="outline">
+                              <Icon name="Settings" size={14} className="mr-1" />
+                              Управление
+                            </Button>
                           </div>
-                          <Button size="sm" variant="outline">
-                            <Icon name="Settings" size={14} className="mr-1" />
-                            Управление
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="bg-white/70 backdrop-blur-sm border-purple-100">
-                  <CardHeader>
-                    <h3 className="text-lg font-semibold text-gray-900">Рекомендуемые группы</h3>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {groups.map((group) => (
-                        <div key={group.id} className="flex items-center space-x-3 p-4 border border-purple-100 rounded-lg hover:bg-purple-50">
-                          <Avatar className="bg-gradient-to-r from-blue-400 to-green-400">
-                            <AvatarFallback className="text-white">
-                              {group.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <h3 className="font-medium">{group.name}</h3>
-                            <p className="text-sm text-gray-500">{group.members} участников</p>
-                          </div>
-                          <Button size="sm" variant="outline">
-                            Присоединиться
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
             )}
             
             {activeTab === 'requests' && (
-              <Card className="bg-white/70 backdrop-blur-sm border-purple-100">
+              <Card className="bg-white border-gray-200">
                 <CardHeader>
-                  <h2 className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  <h2 className="text-xl font-semibold text-black">
                     Заявки в друзья
                   </h2>
                 </CardHeader>
@@ -618,10 +679,10 @@ const Index = () => {
                   ) : (
                     <div className="space-y-4">
                       {pendingRequests.map((request) => (
-                        <div key={request.id} className="flex items-center space-x-3 p-4 border border-purple-100 rounded-lg">
+                        <div key={request.id} className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg">
                           <Avatar>
-                            <AvatarFallback className="bg-gradient-to-r from-cyan-400 to-blue-400 text-white">
-                              🚀
+                            <AvatarFallback className="bg-black text-white">
+                              ⚫
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1">
@@ -629,11 +690,19 @@ const Index = () => {
                             <p className="text-sm text-gray-500">Код: {request.code}</p>
                           </div>
                           <div className="flex space-x-2">
-                            <Button size="sm" className="bg-gradient-to-r from-green-500 to-emerald-500">
+                            <Button 
+                              size="sm" 
+                              className="bg-green-500 hover:bg-green-600 text-white"
+                              onClick={() => acceptFriendRequest(request.id)}
+                            >
                               <Icon name="Check" size={14} className="mr-1" />
                               Принять
                             </Button>
-                            <Button size="sm" variant="outline">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => rejectFriendRequest(request.id)}
+                            >
                               <Icon name="X" size={14} className="mr-1" />
                               Отклонить
                             </Button>
@@ -651,44 +720,56 @@ const Index = () => {
           <div className="lg:col-span-1">
             <div className="space-y-6">
               {/* Online Friends */}
-              <Card className="bg-white/70 backdrop-blur-sm border-purple-100">
+              <Card className="bg-white border-gray-200">
                 <CardHeader>
-                  <h3 className="font-semibold text-gray-900">Онлайн сейчас</h3>
+                  <h3 className="font-semibold text-gray-900">Онлайн</h3>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {friends.filter(f => f.online).map((friend) => (
-                      <div key={friend.id} className="flex items-center space-x-3">
-                        <div className="relative">
-                          <Avatar className="w-8 h-8">
-                            <AvatarFallback className="bg-gradient-to-r from-green-400 to-blue-400 text-white text-xs">
-                              {friend.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="absolute -bottom-0 -right-0 w-3 h-3 bg-green-500 rounded-full border border-white"></div>
+                  {myFriends.filter(f => f.online).length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center">Нет друзей онлайн</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {myFriends.filter(f => f.online).map((friend) => (
+                        <div key={friend.id} className="flex items-center space-x-3">
+                          <div className="relative">
+                            <Avatar className="w-8 h-8">
+                              <AvatarFallback className="bg-black text-white text-xs">
+                                {friend.name.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="absolute -bottom-0 -right-0 w-3 h-3 bg-green-500 rounded-full border border-white"></div>
+                          </div>
+                          <span className="text-sm font-medium">{friend.name}</span>
                         </div>
-                        <span className="text-sm font-medium">{friend.name}</span>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* Trending */}
-              <Card className="bg-white/70 backdrop-blur-sm border-purple-100">
+              {/* Quick Stats */}
+              <Card className="bg-white border-gray-200">
                 <CardHeader>
-                  <h3 className="font-semibold text-gray-900">Актуальные темы</h3>
+                  <h3 className="font-semibold text-gray-900">Статистика</h3>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {['#КосмосМиссия', '#МарсЭкспедиция', '#НевесомостьЖизнь', '#ЗвездныйПуть'].map((tag) => (
-                      <div key={tag} className="flex items-center justify-between">
-                        <span className="text-sm text-purple-600 hover:text-purple-800 cursor-pointer font-medium">
-                          {tag}
-                        </span>
-                        <Icon name="TrendingUp" size={14} className="text-green-500" />
-                      </div>
-                    ))}
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Постов</span>
+                      <span className="text-sm font-medium text-black">{myPosts.length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Друзей</span>
+                      <span className="text-sm font-medium text-red-500">{myFriends.length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Групп</span>
+                      <span className="text-sm font-medium text-black">{myGroups.length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Чатов</span>
+                      <span className="text-sm font-medium text-black">{myChats.length}</span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
